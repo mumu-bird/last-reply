@@ -1,0 +1,26 @@
+import {audit,parseV2ex,safeUrl,MAX_FILE_BYTES} from './core.js';
+const $=s=>document.querySelector(s);
+let threads=[], active=0;
+const labels={closed:'Already closed',reserved:'Already reserved','no-cash':'No cash reward',incomplete:'Missing replies',confirm:'Needs confirmation'};
+const descriptions={closed:'The owner explicitly ended the task. Do not prepare an offer for this snapshot.',reserved:'The owner reserved this work for someone. Do not assume an available slot.','no-cash':'The owner describes credit or points, rather than monetary payment.',incomplete:'The imported snapshot does not contain the complete reply sequence. Recheck the source before deciding.',confirm:'No final closure was recognized. Confirm current scope, funding and availability before doing work.'};
+function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
+function say(text){$('#message').textContent=text;}
+function link(text,url){const u=safeUrl(url);if(!u)return el('span',text);const a=el('a',text);a.href=u;a.target='_blank';a.rel='noopener noreferrer';return a;}
+function render(){
+  $('#count').textContent=String(threads.length).padStart(2,'0');$('#empty').hidden=threads.length>0;$('#clear').hidden=!threads.length;$('#thread-list').replaceChildren();
+  threads.forEach((t,i)=>{const r=audit(t), b=el('button',undefined,'case'+(i===active?' active':''));b.dataset.state=r.status;b.setAttribute('aria-pressed',String(i===active));b.append(el('span',labels[r.status],'case-status'),el('strong',t.title),el('small',`${r.found} / ${r.expected} replies · ${t.demo?'synthetic example':'imported snapshot'}`));b.onclick=()=>{active=i;render();};$('#thread-list').append(b);});
+  if(!threads.length)return;
+  const t=threads[active],r=audit(t),root=$('#result');root.replaceChildren();
+  const h=el('div',undefined,'result-head');h.append(el('h2',t.title),el('span',t.demo?'SYNTHETIC DEMO':'LOCAL IMPORT','badge'));root.append(h);
+  const source=el('p',undefined,'source');source.append(link(r.sourceUrl || 'Source URL unavailable',r.sourceUrl));root.append(source);
+  const d=el('section',undefined,'decision');d.dataset.state=r.status;d.append(el('span','THE CURRENT EVIDENCE','decision-label'),el('h3',labels[r.status]),el('p',descriptions[r.status]));root.append(d);
+  if(r.decisive){root.append(el('blockquote',r.decisive.text,'evidence-quote'),el('p',`${r.decisive.author} · ${r.decisive.number?'reply #'+r.decisive.number:'original post'} · ${r.decisive.kind}`,'attribution'));}
+  const m=el('div',undefined,'metrics');for(const [value,label]of[[`${r.found} / ${r.expected}`,r.complete?'REPLY SEQUENCE COMPLETE':'REPLY SEQUENCE INCOMPLETE'],[r.capturedAt ? new Date(r.capturedAt).toLocaleString('en-GB'):'Unknown','SNAPSHOT CAPTURE TIME']]){const cell=el('div');cell.append(el('strong',value),el('span',label));m.append(cell);}root.append(m);
+  const post=el('details');post.append(el('summary','Original post'));post.append(el('p',t.body,'limits'));root.append(post,el('p','ALL REPLIES · IN ORDER','timeline-title'));
+  if(!r.replies.length)root.append(el('p','No replies in this snapshot.','limits'));
+  for(const reply of r.replies){const item=el('section',undefined,'reply'+(reply.number===r.decisive?.number?' decisive':''));item.append(el('span',String(reply.number).padStart(2,'0'),'reply-number'));const body=el('div');body.append(el('span',`${reply.author}${reply.author===t.owner?' · OWNER':''}`,'meta'),el('p',reply.text));if(safeUrl(reply.url))body.append(link('View source reply ↗',reply.url));item.append(body);root.append(item);}
+  const download=el('button','Download evidence report ↓','download');download.onclick=()=>{const blob=new Blob([JSON.stringify({thread:t,audit:r,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download='last-reply-report.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};root.append(download,el('p',r.warning,'limits'));
+}
+$('#demo').onclick=async()=>{try{const result=await fetch('./fixtures.json');if(!result.ok)throw Error('Example file unavailable. Run npm start, then reload.');const samples=await result.json();samples.forEach(audit);threads=samples;active=0;render();say('Three synthetic examples loaded. These are illustrations, not current paid opportunities.');}catch(e){say(e.message);}};
+$('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(f.size>MAX_FILE_BYTES)throw Error('The file exceeds the 4 MB limit.');const text=await f.text();let imported;if(/\.json$/i.test(f.name)){const value=JSON.parse(text);imported=Array.isArray(value)?value:[value.thread ?? value];}else{imported=[parseV2ex(new DOMParser().parseFromString(text,'text/html'))];}if(imported.length>100)throw Error('Import at most 100 threads at a time.');imported.forEach(audit);threads=imported;active=0;render();say(`Imported ${threads.length} thread${threads.length===1?'':'s'}. No content was uploaded.`);}catch(e){say(`Could not import: ${e.message}`);}finally{e.target.value='';}};
+$('#clear').onclick=()=>{threads=[];active=0;render();$('#result').replaceChildren(el('h2','Session cleared'),el('p','Import another conversation when you are ready.','limits'));say('Imported snapshots removed from this session.');};

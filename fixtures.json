@@ -1,0 +1,70 @@
+[
+  {
+    "title": "A small interface redesign",
+    "owner": "Maya",
+    "sourceUrl": "https://example.com/sample-discussion",
+    "body": "Looking for a frontend developer to improve our conversation page. Budget will be agreed after reviewing examples.",
+    "expectedReplies": 4,
+    "capturedAt": "2026-10-03T00:00:00Z",
+    "demo": true,
+    "replies": [
+      {
+        "number": 1,
+        "author": "Maya",
+        "text": "Please include a working sample, not just a list of technologies."
+      },
+      {
+        "number": 2,
+        "author": "Alex",
+        "text": "Is this still available? I can share a sample."
+      },
+      {
+        "number": 3,
+        "author": "Maya",
+        "text": "I have received several proposals and am reviewing them."
+      },
+      {
+        "number": 4,
+        "author": "Maya",
+        "text": "This task has been completed. Thanks for the interest."
+      }
+    ]
+  },
+  {
+    "title": "A funded-sounding lesson task",
+    "owner": "Lee",
+    "sourceUrl": "https://example.com/sample-lessons",
+    "body": "Bounty: 100 points. Points only; no monetary payment.",
+    "expectedReplies": 1,
+    "capturedAt": "2026-10-03T00:00:00Z",
+    "demo": true,
+    "replies": [
+      {
+        "number": 1,
+        "author": "Lee",
+        "text": "The reward is contributor credit only, not cash."
+      }
+    ]
+  },
+  {
+    "title": "A reopened bug-fix discussion",
+    "owner": "Sam",
+    "sourceUrl": "https://example.com/sample-reopened",
+    "body": "Seeking help with a regression. Scope and cash terms are not yet agreed.",
+    "expectedReplies": 2,
+    "capturedAt": "2026-10-03T00:00:00Z",
+    "demo": true,
+    "replies": [
+      {
+        "number": 1,
+        "author": "Sam",
+        "text": "This task is closed."
+      },
+      {
+        "number": 2,
+        "author": "Sam",
+        "text": "Reopened. The earlier fix was incomplete; new reports are welcome."
+      }
+    ]
+  }
+]

@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {audit,safeUrl} from '../core.js';
+const thread=(replies,body='Seeking a developer.')=>({title:'Sample',owner:'Maya',body,replies:replies.map((r,i)=>({number:i+1,author:'Maya',...r})),expectedReplies:replies.length});
+test('the owner closure changes a misleading original open request',()=>assert.equal(audit(thread([{text:'该任务已完结。'}])).status,'closed'));
+test('a stranger cannot close the owner task',()=>assert.equal(audit(thread([{text:'This task is closed.',author:'stranger'}])).status,'confirm'));
+test('the latest owner reopening supersedes an earlier closure',()=>assert.equal(audit(thread([{text:'This task is closed.'},{text:'Reopened.'}])).status,'confirm'));
+test('missing final comments cannot produce a reassuring audit',()=>{const t=thread([{text:'Please send samples.'}]);t.expectedReplies=4;assert.equal(audit(t).status,'incomplete');});
+test('quote and code block closures are not owner decisions',()=>{for(const text of ['> This task is closed.\nStill seeking help.','```\nThis task is closed.\n```\nStill seeking help.'])assert.equal(audit(thread([{text}])).status,'confirm');});
+test('negated closure remains uncertain',()=>assert.equal(audit(thread([{text:'This task is not closed.'}])).status,'confirm'));
+test('points-only rewards cannot be represented as cash',()=>assert.equal(audit(thread([],'Bounty: 100 points. Points only; no monetary payment.')).status,'no-cash'));
+test('allocation to another contributor blocks an available slot',()=>assert.equal(audit(thread([{text:'Reserved for @someone.'}])).status,'reserved'));
+test('gaps and duplicate numbers are rejected or incomplete',()=>{const t=thread([{text:'Hello'},{text:'Hi'}]);t.replies[1].number=3;assert.equal(audit(t).status,'incomplete');t.replies[1].number=1;assert.throws(()=>audit(t),/Duplicate/);});
+test('malformed schema fails; unsafe links are not allowed',()=>{assert.throws(()=>audit({}),/title/);assert.equal(safeUrl('javascript:alert(1)'),null);assert.equal(safeUrl('https://user:password@example.com'),null);assert.equal(safeUrl('https://example.com/topic'),'https://example.com/topic');});
